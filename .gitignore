@@ -4,6 +4,10 @@ workshop/nodes.csv
 workshop/.env.workshop
 workshop/attendees.csv
 workshop/shard-assignments.csv
+workshop/_*.sh
+
+# Claude Code session artifacts
+.claude/
 
 # Python
 __pycache__/
