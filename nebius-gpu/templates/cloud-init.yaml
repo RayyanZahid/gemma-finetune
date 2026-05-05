@@ -1,0 +1,43 @@
+#cloud-config
+# Reference cloud-init for Nebius GPU instances.
+#
+# What this does:
+#   1. Adds your SSH public key to the default `ubuntu` user (passwordless sudo).
+#   2. Adds your SSH key to root for fallback / emergency access.
+#   3. (Optional) Pre-installs python3-venv + git + tmux to speed up first run.
+#
+# How to use: pass to `nebius compute instance create --cloud-init-user-data "<this content>"`.
+# In provision.sh this is built inline via heredoc — this file is the documented reference.
+
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA... your-key-here
+
+ssh_authorized_keys:
+  - ssh-ed25519 AAAA... your-key-here
+
+# Optional: pre-install common tooling so the first SSH session is faster.
+# Comment out if you want a minimal image.
+package_update: false  # cloud-init's apt update is slow; do it yourself if you want it
+packages:
+  - python3-venv
+  - python3-pip
+  - git
+  - tmux
+  - htop
+
+# Optional: write a one-liner that confirms cloud-init finished.
+write_files:
+  - path: /etc/motd.d/cloud-init-status
+    content: |
+      [ic-workshop] cloud-init complete. SSH user: ubuntu. NVIDIA drivers + CUDA pre-installed.
+    permissions: '0644'
+
+# NOTE: cloud-init runs *after* the instance is RUNNING and SSH is technically up,
+# so package install can take 30-90s after `nebius compute instance get` shows
+# state=RUNNING. If your `pip install` fails because python3-venv isn't there yet,
+# that's the timing — wait 60s and retry, or skip cloud-init packages entirely
+# and apt-install in your run script.

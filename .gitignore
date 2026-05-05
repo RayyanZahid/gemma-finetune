@@ -1,0 +1,22 @@
+# Workshop runtime artifacts — never commit
+workshop/keys/
+workshop/nodes.csv
+workshop/.env.workshop
+workshop/attendees.csv
+workshop/shard-assignments.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.ipynb_checkpoints/
+
+# Recipe outputs (when this repo is cloned to run training)
+runs/
+models/
+data/dolly_*.jsonl
+
+# OS
+.DS_Store
+Thumbs.db
