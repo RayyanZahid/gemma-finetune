@@ -1,7 +1,105 @@
-# Workshop Co-Host Runbook — 9× H100 Pool for ~72 Attendees
+# Workshop Co-Host Runbook
 
 **Event:** Immersive Commons · *Fine-Tune Gemma 4 on Your Data* · Tue May 5 2026 · 7-9pm PT · Frontier Tower 10F
 **Co-hosts:** Rayyan Zahid · Eric Mockler
+
+Two patterns, depending on attendee count:
+
+| Pattern | Attendees | Cost (2hr) | Complexity | When to use |
+|---|---|---|---|---|
+| **A. Single H100, multi-key** | 4-6 | ~$6 | Low | Default for IC events |
+| **B. 9-node fleet** | 60-72 | ~$53 | Medium | Workshops at scale |
+
+Pattern A is the actual May 5 setup. Pattern B is documented for re-use.
+
+---
+
+## Pattern A — Single H100, 4-6 Attendees
+
+The default ergonomics for an IC workshop: one H100, one shared `ubuntu` user, one SSH key per attendee appended to `~/.ssh/authorized_keys`, attendees scope work by directory (`runs/<their-name>/`). All 4-6 agents drive their own fine-tune in parallel; each Gemma 4 E4B QLoRA kernel is ~10 GB so 6 fit on the 80 GB H100 with headroom.
+
+### What gets shipped at the door
+
+Each attendee gets one Luma DM (or paper handout) with three things:
+
+1. **Their SSH command:** `ssh -i workshop-attendee-N.pem ubuntu@<live-IP>`
+2. **Their private key file** (`workshop-attendee-N.pem`) — one per attendee, generated locally + appended to `authorized_keys` on the box
+3. **The repo URL:** `https://github.com/RayyanZahid/gemma-finetune` — and the agent briefing path `TASK.md`
+
+### Phases (~2 hours)
+
+```
+  T-3h    bootstrap nebius CLI in WSL              (one-time, ~5 min, free)
+  T-2h    discover IDs, generate keys, provision   (~10 min, $0.30)
+  T-1.5h  bootstrap.sh on the box                  (~5 min, ~$0.30)
+  T-1h    smoke-test ONE end-to-end fine-tune      (~5 min, ~$0.30)
+  T-30m   distribute SSH credentials               (~10 min, free)
+  T+0     attendees SSH in, drop TASK.md into agents
+  T+0-2h  agents drive fine-tunes in parallel       (~$6 of compute)
+  T+2h    teardown                                  (METER STOPS)
+```
+
+Total cost: **~$7 for the workshop window**. One H100 burns at $2.95/hr.
+
+### Setup script (run on host laptop)
+
+```bash
+# in WSL, one time per session
+source workshop/.env.workshop                    # PROJECT_ID etc.
+bash workshop/generate-keys.sh                   # 9 keys (extras don't hurt)
+# OR: just generate the 4-6 you need:
+INSTANCE_PREFIX=experiment FLEET_SIZE=1 bash workshop/generate-keys.sh
+
+# provision ONE H100 with the first key baked in (or many keys via cloud-init)
+# (see _provision-experiment.sh in this folder for the 2-key inline pattern)
+
+# bootstrap the box
+ssh -i keys/experiment-rayyan.pem ubuntu@<IP> \
+  "curl -sSL https://raw.githubusercontent.com/RayyanZahid/gemma-finetune/master/workshop/bootstrap.sh | bash"
+```
+
+### Adding more keys to a running box
+
+```bash
+# from your laptop, append additional pubkeys to authorized_keys:
+cat keys/attendee-{1,2,3,4}.pem.pub | \
+  ssh -i keys/experiment-rayyan.pem ubuntu@<IP> \
+    'cat >> ~/.ssh/authorized_keys && wc -l ~/.ssh/authorized_keys'
+```
+
+No reboot or reprovision needed — SSH just starts accepting the new keys.
+
+### Each attendee's flow once they're in
+
+1. SSH in: `ssh -i my-key.pem ubuntu@<IP>`
+2. `cd ~/gemma-finetune`
+3. `source ~/venv/bin/activate`
+4. Drop `TASK.md` into their coding agent (Claude Code / Cursor / Cline / Aider)
+5. Agent reads the briefing, runs `python templates/finetune.py --user <their-name> --out-dir runs/<their-name>`
+6. ~12 min wait, then `runs/<their-name>/<their-name>-r1.compare.md` shows baseline vs tuned
+
+### Concurrency math
+
+| What | VRAM | Concurrent on 80 GB |
+|---|---|---|
+| Gemma 4 E4B QLoRA r=8 | ~10 GB | 6-8 |
+| Gemma 4 E2B QLoRA r=8 | ~5 GB | 12+ |
+| Gemma 4 12B QLoRA r=8 | ~24 GB | 3 |
+| Gemma 4 26B QLoRA r=8 | ~48 GB | 1 |
+
+For a 4-6 attendee event, default to E4B. Coach attendees who hit OOM to drop to E2B (`--model unsloth/gemma-4-E2B-it`) or rank 4 (`--rank 4`).
+
+### Teardown
+
+```bash
+~/.nebius/bin/nebius compute instance delete --id <instance-id>
+~/.nebius/bin/nebius compute disk list --parent-id $PROJECT_ID | grep -B1 -boot
+# delete the boot disk if it survived: nebius compute disk delete --id <disk-id>
+```
+
+---
+
+## Pattern B — 9-Node Fleet for ~72 Attendees
 
 This runbook is the operator's view: how the 9-node H100 fleet gets provisioned, how 72 attendees get dispatched onto it, and how it gets torn down at 9:30pm sharp so the meter stops.
 
