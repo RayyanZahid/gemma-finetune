@@ -1,0 +1,29 @@
+{
+  "prompts": [
+    {
+      "id": "factual-qa",
+      "category": "closed_qa",
+      "prompt": "What is the capital of France, and why is it sometimes called the City of Light?"
+    },
+    {
+      "id": "creative-writing",
+      "category": "creative_writing",
+      "prompt": "Write a four-line poem about a cat watching rain through a window."
+    },
+    {
+      "id": "instruction-format",
+      "category": "general_qa",
+      "prompt": "Give me three concrete tips for someone learning to play the guitar in their first month."
+    },
+    {
+      "id": "summarization",
+      "category": "summarization",
+      "prompt": "In two sentences, summarize what LoRA (Low-Rank Adaptation) does and why it's useful for fine-tuning large language models."
+    },
+    {
+      "id": "classification",
+      "category": "classification",
+      "prompt": "Classify the following sentence as positive, negative, or neutral, and explain in one line: 'The coffee was burnt but the conversation was wonderful.'"
+    }
+  ]
+}
