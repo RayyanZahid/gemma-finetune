@@ -81,7 +81,7 @@ fi
 
 # Build the voice/style datasets that data/build_voice_dataset.py knows about.
 # Add new sources here as they're implemented in the build script.
-for src in shakespeare; do
+for src in shakespeare obama trump marktwain; do
   out="$REPO_DIR/data/${src}_15k.jsonl"
   if [ ! -f "$out" ]; then
     log "building $src dataset (one-time, ~30-60s)..."

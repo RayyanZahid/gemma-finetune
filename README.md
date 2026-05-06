@@ -38,7 +38,7 @@ python templates/finetune.py --user me --dataset data/shakespeare_15k.jsonl --ou
 ```
 
 `data/build_voice_dataset.py` produces 15k-row dolly-shaped JSONL from public corpora.
-Sources online: `shakespeare`. More to come (`obama`, `trump`, `marktwain`).
+Sources online: `shakespeare`, `obama`, `trump`, `marktwain`. Run `--all` to build every source.
 
 Output: a LoRA adapter at `runs/me-r1.adapter` plus a `runs/me-r1.compare.md` showing baseline vs tuned on five held-out prompts.
 

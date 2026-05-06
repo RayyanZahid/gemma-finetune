@@ -29,7 +29,9 @@ warm box. While you wait, read `SKILL.md` § 3 to understand what's happening.
 - **Dataset**: pick one of the pre-staged datasets in `data/`:
   - `data/dolly_1k.jsonl` — default; first 1k rows of Databricks Dolly 15k (8 task categories)
   - `data/shakespeare_15k.jsonl` — 15k Shakespearean continuation + style-transfer rows
-  - `data/obama_15k.jsonl`, `data/trump_15k.jsonl`, `data/marktwain_15k.jsonl` — coming online as the build script lands them
+  - `data/obama_15k.jsonl` — 15k Obama-tweet rows across 6 templates (style x2, continuation, topic, tone, author classification)
+  - `data/trump_15k.jsonl` — 15k Trump-tweet rows (style + continuation + author classification; profanity-filtered by default)
+  - `data/marktwain_15k.jsonl` — 15k Mark Twain prose passages from 10 Project Gutenberg works (continuation + style)
   Default uses Dolly. Override with `--dataset data/<name>.jsonl` on `finetune.py`.
   If you want to specialize Dolly further, subsample by category — Dolly has
   8 categories (creative_writing, summarization, classification, ...).
