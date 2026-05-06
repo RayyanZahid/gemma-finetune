@@ -90,7 +90,7 @@ python data/build_voice_dataset.py --source marktwain     # Mark Twain prose (10
 python data/build_voice_dataset.py --all                  # all four, sequential
 ```
 
-Each call writes `data/<source>_15k.jsonl` (15,000 rows, dolly schema). The workshop bootstrap (`workshop/bootstrap.sh`) auto-runs the implemented sources on each VM, so attendees can pick `--dataset data/shakespeare_15k.jsonl` (etc.) without extra setup.
+Each call writes `data/<source>_15k.jsonl` (15,000 rows, dolly schema). The workshop bootstrap (`workshop/bootstrap.sh`) prefers a pre-built copy on HF — [`xinbenlv/gemma-finetune-webgpu`](https://huggingface.co/datasets/xinbenlv/gemma-finetune-webgpu) — and falls back to running the local build script if HF is unreachable. Attendees can pick `--dataset data/shakespeare_15k.jsonl` (etc.) without extra setup.
 
 For your own data: convert to JSONL with the same keys. If you only have `prompt` + `completion`, rename them to `instruction` + `response` — the chat-template wrapper in `finetune.py` keys off those.
 

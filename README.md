@@ -40,6 +40,10 @@ python templates/finetune.py --user me --dataset data/shakespeare_15k.jsonl --ou
 `data/build_voice_dataset.py` produces 15k-row dolly-shaped JSONL from public corpora.
 Sources online: `shakespeare`, `obama`, `trump`, `marktwain`. Run `--all` to build every source.
 
+Pre-built copies are on HF Hub at [`xinbenlv/gemma-finetune-webgpu`](https://huggingface.co/datasets/xinbenlv/gemma-finetune-webgpu)
+for fast download — `workshop/bootstrap.sh` curls them onto each VM automatically
+(falls back to running the local build if HF is unreachable).
+
 Output: a LoRA adapter at `runs/me-r1.adapter` plus a `runs/me-r1.compare.md` showing baseline vs tuned on five held-out prompts.
 
 ### 3. As a workshop fleet (the May 5 night)

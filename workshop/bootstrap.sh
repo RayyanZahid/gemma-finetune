@@ -79,19 +79,29 @@ else
   log "dolly_1k.jsonl already in place ($(wc -l < "$DOLLY_1K") rows)"
 fi
 
-# Build the voice/style datasets that data/build_voice_dataset.py knows about.
-# Add new sources here as they're implemented in the build script.
+# Pre-built voice/style datasets live on HF for fast fetch (~4-5 MB each via
+# curl, vs ~30-60s to rebuild from upstream). Falls back to local build if HF
+# is unreachable. Sources tracked here must exist in build_voice_dataset.py
+# AND be uploaded to the HF repo below.
+HF_DATA_BASE="https://huggingface.co/datasets/xinbenlv/gemma-finetune-webgpu/resolve/main"
 for src in shakespeare obama trump marktwain; do
   out="$REPO_DIR/data/${src}_15k.jsonl"
-  if [ ! -f "$out" ]; then
-    log "building $src dataset (one-time, ~30-60s)..."
-    if python "$REPO_DIR/data/build_voice_dataset.py" --source "$src"; then
-      log "$src dataset ready ($(wc -l < "$out") rows)"
-    else
-      log "WARNING: $src build failed — attendees can pick another dataset" >&2
-    fi
-  else
+  if [ -f "$out" ]; then
     log "$src dataset already in place ($(wc -l < "$out") rows)"
+    continue
+  fi
+  log "fetching $src dataset from HF..."
+  if curl -sSL --fail "$HF_DATA_BASE/${src}_15k.jsonl" -o "$out.tmp"; then
+    mv "$out.tmp" "$out"
+    log "$src dataset ready ($(wc -l < "$out") rows, from HF)"
+    continue
+  fi
+  rm -f "$out.tmp"
+  log "HF fetch failed for $src; falling back to local build (~30-60s)..."
+  if python "$REPO_DIR/data/build_voice_dataset.py" --source "$src"; then
+    log "$src dataset ready ($(wc -l < "$out") rows, from build)"
+  else
+    log "WARNING: $src build failed — attendees can pick another dataset" >&2
   fi
 done
 
