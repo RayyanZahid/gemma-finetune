@@ -20,11 +20,12 @@ warm box. While you wait, read `SKILL.md` § 3 to understand what's happening.
 
 ## Hard constraints
 
-- **Model**: `unsloth/gemma-4-E4B-it` (default in `finetune.py`). If you want
-  to try a smaller or larger variant, override with `--model unsloth/gemma-4-E2B-it`
-  etc. — see the table in `SKILL.md` § 1.
-- **Training framework**: Unsloth (4-bit QLoRA). It's already installed in
-  `~/venv`. ~1.5-2x faster than vanilla TRL+PEFT on this hardware.
+- **Model**: `unsloth/gemma-4-E2B-it` (default — small, ~5 GB VRAM, fits 8+
+  concurrent on a shared H100). For a bigger model on a solo run, override
+  with `--model unsloth/gemma-4-E4B-it` (~10 GB) or larger — see SKILL.md § 1.
+- **LoRA rank**: 4 (default — fast train, smaller adapter). Bump to 8 or 16
+  if your task is harder (`--rank 16`).
+- **Training framework**: Unsloth (4-bit QLoRA). Already installed in `~/venv`.
 - **Dataset**: `data/dolly_1k.jsonl` — first 1k rows of Databricks Dolly 15k.
   Already on the VM. If you want to specialize, subsample by category — the
   dataset has 8 (creative_writing, summarization, classification, ...).
@@ -38,9 +39,10 @@ warm box. While you wait, read `SKILL.md` § 3 to understand what's happening.
    the naked base model. Save the outputs. Do not skip this step. Without
    baseline you cannot prove the tune did anything.
 
-2. **Train.** LoRA rank 8, alpha 16, 3 epochs is the validated default. You
-   may bump rank to 16, change the dataset subset, or extend epochs. Every
-   change you make goes in the **Notes** section of compare.md.
+2. **Train.** LoRA rank 4, alpha 8, 3 epochs is the workshop default
+   (smaller than the May-1 5/5 validation, but sized for a shared H100).
+   You may bump rank to 8 or 16, change the dataset subset, or extend
+   epochs. Every change goes in the **Notes** section of compare.md.
 
 3. **Tuned inference.** `finetune.py` re-runs the same five prompts with the
    adapter attached, side-by-side with baseline.
@@ -61,7 +63,7 @@ shifted vs baseline` — that's your number.
 
 | Symptom | What to try first |
 |---|---|
-| `CUDA out of memory` | Drop to E2B (`--model unsloth/gemma-4-E2B-it`) or rank 4 (`--rank 4`). The H100 is shared up to 6 ways; the workshop sized headroom for that. |
+| `CUDA out of memory` | You're already on E2B+r4 by default. Drop to E2B+r2 (`--rank 2`) or wait 2 min for a peer to finish. The H100 is shared up to 8 ways. |
 | Outputs look identical (0/5 shift) | The adapter isn't loaded for tuned inference. Re-read `templates/finetune.py` step 7 — adapter must still be attached after `model.save_pretrained()`. |
 | Training loss is flat or NaN | Tokenization issue. Check `ds["text"][0]` contains `<start_of_turn>user` and `<start_of_turn>model` markers (chat template applied). |
 | `Python.h: No such file` from a Triton compile | `sudo apt-get install -y python3-dev build-essential` on the VM (one-time). The bootstrap script does this — re-run it. |
@@ -87,11 +89,13 @@ keep a copy after the meter stops at 9:30pm.
 
 ## Stretch (if you finish early)
 
-- **Pattern B from `SKILL.md`**: hyperparameter sweep. Re-run with rank 16,
-  rank 4, or epochs=5. Save each as `<name>-r2.adapter`. Diff the compares.
-- **Specialize by category**: filter Dolly to one of its 8 categories
-  before training. See if you get a "creative writer" or "classifier"
-  Gemma. Use `--max-samples` to keep wall-clock manageable.
+- **Try E4B (the bigger sibling)**: `--model unsloth/gemma-4-E4B-it --rank 8`.
+  ~10 GB VRAM — check that your shard isn't peaked before launching. More
+  capacity, more visible shift on hard prompts.
+- **Hyperparameter sweep**: re-run with rank 8, rank 16, or epochs=5. Save
+  each as `<name>-r2.adapter`. Diff the compares.
+- **Specialize by category**: filter Dolly to one of its 8 categories before
+  training. See if you get a "creative writer" or "classifier" Gemma.
 - **Bring your own dataset**: any JSONL with `instruction` / `response`
   fields works. SCP it up to `data/<your-name>-mydata.jsonl` and point
   `--dataset` at it.

@@ -82,12 +82,13 @@ No reboot or reprovision needed — SSH just starts accepting the new keys.
 
 | What | VRAM | Concurrent on 80 GB |
 |---|---|---|
-| Gemma 4 E4B QLoRA r=8 | ~10 GB | 6-8 |
+| Gemma 4 **E2B QLoRA r=4** (workshop default) | ~3-5 GB | 12-16 |
 | Gemma 4 E2B QLoRA r=8 | ~5 GB | 12+ |
+| Gemma 4 E4B QLoRA r=8 | ~10 GB | 6-8 |
 | Gemma 4 12B QLoRA r=8 | ~24 GB | 3 |
 | Gemma 4 26B QLoRA r=8 | ~48 GB | 1 |
 
-For a 4-6 attendee event, default to E4B. Coach attendees who hit OOM to drop to E2B (`--model unsloth/gemma-4-E2B-it`) or rank 4 (`--rank 4`).
+**Workshop default is E2B + rank 4** — fits 8 attendees per node with 2× headroom. Trades slightly less visible shift for far fewer OOMs. Coach ambitious attendees to bump up (`--model unsloth/gemma-4-E4B-it --rank 8`) only if the shard isn't full.
 
 ### Teardown
 

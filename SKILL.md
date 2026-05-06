@@ -90,8 +90,8 @@ The Unsloth-mirrored 4-bit-ready Gemma 4 family on Hugging Face:
 
 | Model | Repo | VRAM (4-bit) | Notes |
 |---|---|---|---|
-| Gemma 4 E2B-it | `unsloth/gemma-4-E2B-it` | ~6 GB | Smallest — laptop-class |
-| Gemma 4 E4B-it | `unsloth/gemma-4-E4B-it` | ~10 GB | Workshop default. Best quality/cost |
+| Gemma 4 E2B-it | `unsloth/gemma-4-E2B-it` | ~5 GB | Shared-VM workshop default (8+ concurrent). Laptop-class. |
+| Gemma 4 E4B-it | `unsloth/gemma-4-E4B-it` | ~10 GB | Solo/2-attendee default. Best quality/cost. |
 | Gemma 4 1B-it | `unsloth/gemma-4-1b-it` | ~3 GB | Tiny baseline |
 | Gemma 4 4B-it | `unsloth/gemma-4-4b-it` | ~12 GB | |
 | Gemma 4 12B-it | `unsloth/gemma-4-12b-it` | ~24 GB | Needs L40S+ |

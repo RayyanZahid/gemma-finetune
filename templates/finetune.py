@@ -70,14 +70,19 @@ def write_compare(prompts, base_out, tuned_out, config, train_loss, timings, des
 def main() -> int:
     ap = argparse.ArgumentParser(description="Gemma 4 QLoRA fine-tune end-to-end.")
     ap.add_argument("--user", required=True, help="Used in output filenames.")
-    ap.add_argument("--model", default="unsloth/gemma-4-E4B-it",
-                    help="HF repo id. unsloth/gemma-4-{E2B,E4B,1b,4b,12b,26b}-it.")
+    ap.add_argument("--model", default="unsloth/gemma-4-E2B-it",
+                    help="HF repo id. unsloth/gemma-4-{E2B,E4B,1b,4b,12b,26b}-it. "
+                         "Default E2B (~5GB VRAM) for shared-VM workshops; bump to "
+                         "E4B (~10GB) for solo runs.")
     ap.add_argument("--dataset", default="data/dolly_1k.jsonl",
                     help="Path to JSONL with instruction/response/(context) fields.")
     ap.add_argument("--eval-prompts", default="prompts/eval_prompts.json",
                     help="Path to JSON with held-out eval prompts.")
-    ap.add_argument("--rank", type=int, default=8)
-    ap.add_argument("--alpha", type=int, default=16)
+    ap.add_argument("--rank", type=int, default=4,
+                    help="LoRA rank. Default 4 for shared-VM workshops; 8-16 for "
+                         "harder tasks or solo runs.")
+    ap.add_argument("--alpha", type=int, default=8,
+                    help="LoRA alpha. Convention: 2x rank.")
     ap.add_argument("--epochs", type=int, default=3)
     ap.add_argument("--lr", type=float, default=2e-4)
     ap.add_argument("--batch-size", type=int, default=2)
