@@ -5,7 +5,9 @@
 #   bash run.sh <vm-ip> <user> [--model MODEL] [--rank N] [--epochs N] ...
 #
 # Assumes:
-#   - SSH key at ~/.ssh/id_ed25519 (WSL-native; /mnt/c key has bad perms)
+#   - SSH key at $SSH_KEY (override via env, default: ~/.ssh/id_ed25519)
+#     Workshop attendees: `SSH_KEY=./workshop-N.pem bash run.sh <ip> <user>`
+#   - On WSL, keep the key inside the Linux home — /mnt/c keys have bad perms
 #   - VM has python3, pip, CUDA driver
 #   - VM is Ubuntu 22.04 or 24.04 (PEP 668 handled either way)
 #
@@ -22,7 +24,11 @@ USER_NAME="$2"
 shift 2
 EXTRA_ARGS="$*"
 
-SSH_KEY=~/.ssh/id_ed25519
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+if [ ! -f "$SSH_KEY" ]; then
+  echo "FATAL: SSH key not found at $SSH_KEY. Set SSH_KEY=./your-key.pem and retry." >&2
+  exit 1
+fi
 SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15)
 
 # Where this skill lives — copy templates from here
@@ -45,7 +51,7 @@ scp "${SSH_OPTS[@]}" "$TEMPLATES/eval_prompts.json" "ubuntu@$IP:~/work/prompts/e
 
 echo "[run] installing deps + running fine-tune (this is the long one — ~15-25 min)..."
 ssh "${SSH_OPTS[@]}" "ubuntu@$IP" bash <<REMOTE
-set -e
+set -eo pipefail
 nvidia-smi --query-gpu=name,memory.total --format=csv 2>&1 | head -3 || echo "(no nvidia-smi yet)"
 
 # venv (PEP 668 on 24.04)

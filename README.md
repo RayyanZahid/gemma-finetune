@@ -28,10 +28,10 @@ git clone https://github.com/RayyanZahid/gemma-finetune
 cd gemma-finetune
 # you have a CUDA GPU already, locally or remote
 pip install unsloth trl peft datasets bitsandbytes accelerate
-python templates/finetune.py --model unsloth/gemma-4-E4B-it --dataset data/dolly_1k.jsonl --out runs/me-r1
+python templates/finetune.py --user me --dataset data/dolly_1k.jsonl --out-dir runs
 ```
 
-Output: a LoRA adapter at `models/me-r1.adapter` plus a `runs/me-r1.compare.md` showing baseline vs tuned on five held-out prompts.
+Output: a LoRA adapter at `runs/me-r1.adapter` plus a `runs/me-r1.compare.md` showing baseline vs tuned on five held-out prompts.
 
 ### 3. As a workshop fleet (the May 5 night)
 

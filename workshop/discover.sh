@@ -32,15 +32,15 @@ fi
 
 # ---- emit ------------------------------------------------------------------
 cat <<EOF
-PROJECT_ID=$PROJECT_ID
-SUBNET_ID=$SUBNET_ID
-PLATFORM=gpu-h100-sxm
-PRESET=1gpu-16vcpu-200gb
-IMAGE_FAMILY=mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8
+export PROJECT_ID=$PROJECT_ID
+export SUBNET_ID=$SUBNET_ID
+export PLATFORM=gpu-h100-sxm
+export PRESET=1gpu-16vcpu-200gb
+export IMAGE_FAMILY=mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8
 
 # Optional overrides
-DISK_GB=200
-IMAGE_PARENT=project-e00public-images
-FLEET_SIZE=9
-INSTANCE_PREFIX=workshop
+export DISK_GB=200
+export IMAGE_PARENT=project-e00public-images
+export FLEET_SIZE=9
+export INSTANCE_PREFIX=workshop
 EOF

@@ -235,25 +235,42 @@ Once `nodes.csv` is written, **the meter is running** at $26.55/hr ($2.95 × 9).
 Before sending 72 attendees at it, prove one node works end-to-end. Eric runs this from his laptop:
 
 ```bash
-# pick the first shard
+# pick a shard (repeat for 5 and 9 for spread — sequential or parallel, your call)
 KEY=keys/workshop-1.pem
 IP=$(awk -F, '$1==1 {print $3}' nodes.csv)
+SSH="ssh -i $KEY -o StrictHostKeyChecking=no"
+SCP="scp -i $KEY -o StrictHostKeyChecking=no"
 
-ssh -i $KEY -o StrictHostKeyChecking=no ubuntu@$IP \
-  'nvidia-smi --query-gpu=name,memory.total --format=csv'
-# expect: NVIDIA H100 80GB HBM3, 81920 MiB
+# 1. GPU sanity
+$SSH ubuntu@$IP 'nvidia-smi --query-gpu=name,memory.total --format=csv'
+# expect: NVIDIA H100 80GB HBM3, 81559 MiB (give or take a few MiB)
 
-# kick a fast smoke fine-tune
-scp -i $KEY ../templates/finetune.py ubuntu@$IP:~/
-ssh -i $KEY ubuntu@$IP bash <<'REMOTE'
-sudo apt-get install -y python3-dev build-essential 2>&1 | tail -3
-python3 -m venv ~/venv && source ~/venv/bin/activate
+# 2. Stage templates + eval prompts
+$SSH ubuntu@$IP 'mkdir -p ~/work/prompts ~/work/runs ~/work/data'
+$SCP ../templates/finetune.py        ubuntu@$IP:~/work/finetune.py
+$SCP ../templates/eval_prompts.json  ubuntu@$IP:~/work/prompts/eval_prompts.json
+
+# 3. Install + fast smoke (~5-7 min cold per shard, ~$0.35)
+$SSH ubuntu@$IP bash <<'REMOTE'
+set -e
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+  python3-dev build-essential python3.12-venv 2>&1 | tail -2
+[ -d ~/venv ] || python3 -m venv ~/venv
+source ~/venv/bin/activate
+pip install --upgrade pip wheel -q
 pip install -q unsloth trl peft datasets bitsandbytes accelerate
-python finetune.py --model unsloth/gemma-4-E4B-it --max-steps 5 --out runs/smoke
+[ -f ~/work/data/dolly_1k.jsonl ] || \
+  curl -sL "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/main/databricks-dolly-15k.jsonl" \
+    | head -n 1000 > ~/work/data/dolly_1k.jsonl
+cd ~/work
+python finetune.py --user smoke \
+  --dataset data/dolly_1k.jsonl \
+  --eval-prompts prompts/eval_prompts.json \
+  --max-samples 50 --epochs 1 --out-dir runs
 REMOTE
 ```
 
-If that returns *"5/5 prompts shifted"* (or any compare.md output), the recipe runs on this hardware. Replicate the smoke step on at least nodes 2 and 9 for variance.
+The smoke succeeds when you see a `VERDICT: N/M prompts shifted` line — the count is irrelevant at 50 samples × 1 epoch (we're testing wiring, not model quality). Anything that crashes before VERDICT means the shard is broken; swap it out before dispatch. The full-strength recipe attendees will run is `--max-samples 0 --epochs 3` (defaults).
 
 ---
 
@@ -264,16 +281,30 @@ You have a CSV of 72 RSVPs (download from Luma → CSV export). Run:
 ```bash
 bash dispatch.sh attendees.csv > shard-assignments.csv
 head shard-assignments.csv
-# attendee_email,attendee_name,shard,ssh_command
-# alice@example.com,Alice,1,ssh -i workshop-1.pem ubuntu@5.188.42.10
-# bob@example.com,Bob,1,ssh -i workshop-1.pem ubuntu@5.188.42.10
+# email,name,shard,ssh_command
+# alice@example.com,Alice,1,ssh -i ./workshop-1.pem ubuntu@5.188.42.10
+# bob@example.com,Bob,1,ssh -i ./workshop-1.pem ubuntu@5.188.42.10
 # ...
 ```
 
-Each attendee gets a Luma DM (or door handout):
-1. Their `ssh_command` line
-2. The matching `workshop-N.pem` (attached or via signed URL)
-3. The repo URL: `https://github.com/RayyanZahid/gemma-finetune` for the recipe
+Each attendee gets a Luma DM (or door handout) with three things:
+1. Their `ssh_command` line from the CSV
+2. The matching `workshop-N.pem` (attached, or signed URL — the file is ~400 bytes of text)
+3. Repo URL: `https://github.com/RayyanZahid/gemma-finetune` — point your coding agent at `SKILL.md`
+
+### Attendee laptop setup — any OS
+
+Save `workshop-N.pem` into a fresh working directory, then:
+
+| OS | Protect the key (SSH refuses world-readable keys) | Connect |
+|---|---|---|
+| macOS / Linux / WSL2 | `chmod 600 workshop-N.pem` | `ssh -i ./workshop-N.pem ubuntu@<ip>` |
+| Windows PowerShell | `icacls .\workshop-N.pem /inheritance:r /grant:r "$env:USERNAME:R"` | `ssh -i .\workshop-N.pem ubuntu@<ip>` |
+| Git Bash on Windows | `chmod 600 workshop-N.pem` | `ssh -i ./workshop-N.pem ubuntu@<ip>` |
+
+Then run your coding agent (Claude Code, Cursor, Codex, whatever) in the same directory. Tell it: *"follow SKILL.md from `https://github.com/RayyanZahid/gemma-finetune`, SSHing in with `./workshop-N.pem`."*
+
+WSL2 caveat: save the `.pem` under your Linux home (`~/`), not under `/mnt/c/...` — `chmod` doesn't always stick on DrvFs mounts and SSH will still complain.
 
 Round-robin assignment is fine. If you want to balance by self-declared experience level (RSVP tags), tweak the CSV before running dispatch.
 

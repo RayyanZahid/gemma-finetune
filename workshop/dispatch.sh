@@ -37,7 +37,9 @@ while IFS=, read -r email name rest; do
   fi
   shard_idx=$(( (i - 1) % NODE_COUNT ))
   IFS=, read -r shard inst ip key <<< "${NODE_LINES[$shard_idx]}"
-  ssh_cmd="ssh -i workshop/$key -o StrictHostKeyChecking=no ubuntu@$ip"
+  # explicit ./ so PowerShell finds the key in CWD (it won't on bare basename)
+  key_basename=$(basename "$key")
+  ssh_cmd="ssh -i ./$key_basename -o StrictHostKeyChecking=no ubuntu@$ip"
   printf '%s,%s,%s,%s\n' "$email" "$name" "$shard" "$ssh_cmd"
   i=$((i+1))
 done < "$ATTENDEES"
