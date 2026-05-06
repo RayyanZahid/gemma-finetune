@@ -40,6 +40,17 @@ The agent does the rest. Walk over to Eric or Ray if it stalls 5+ min.
 | 13 - 24 | 2 | 89.169.115.238 |
 | 25 - 35 | 3 | 89.169.123.133 |
 
+### Overflow shards (Colin's H100s)
+
+If your original shard is full or slow, OR you're starting late, use one of these instead:
+
+| Numbers | Shard | IP |
+|---|---|---|
+| 1 - 17 (any not-yet-started) | 4 | 89.169.108.202 |
+| 18 - 35 (any not-yet-started) | 5 | 89.169.120.70 |
+
+The overflow shards are fresh empty H100s — no queue, instant capacity.
+
 ---
 
 ## Shards
@@ -92,6 +103,42 @@ QyNTUxOQAAACCnP0fHfTQTjRH5is8GpW4OzBE656MIjZ0kNyV07VgPSAAAAKAMR8jGDEfI
 xgAAAAtzc2gtZWQyNTUxOQAAACCnP0fHfTQTjRH5is8GpW4OzBE656MIjZ0kNyV07VgPSA
 AAAECZjaC+gG7iUQhgkn1ovdLWBsuvfCsh/XKAy/Qif67fWac/R8d9NBONEfmKzwalbg7M
 ETrnowiNnSQ3JXTtWA9IAAAAFndvcmtzaG9wLTNAaWMtd29ya3Nob3ABAgMEBQYH
+-----END OPENSSH PRIVATE KEY-----
+```
+
+---
+
+### Shard 4 — Colin's H100 (overflow for numbers 1-17)
+
+**SSH:** `ssh -i ~/.ssh/ic-shard-4.pem ubuntu@89.169.108.202`
+**Output dir:** `runs/attendee-N/`
+
+Save this private key as `~/.ssh/ic-shard-4.pem`, then `chmod 600 ~/.ssh/ic-shard-4.pem`:
+
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACD9m3a3SoXULNW7V8vlzawng3BCE0Bw+rfUPZFB2jSimgAAAKClKzfXpSs3
+1wAAAAtzc2gtZWQyNTUxOQAAACD9m3a3SoXULNW7V8vlzawng3BCE0Bw+rfUPZFB2jSimg
+AAAEAQHlGtAKdkq03cnNBo4O/qj8zys+m/pCnY4SQYEHwcRP2bdrdKhdQs1btXy+XNrCeD
+cEITQHD6t9Q9kUHaNKKaAAAAFndzLWNvbGluLTRAaWMtd29ya3Nob3ABAgMEBQYH
+-----END OPENSSH PRIVATE KEY-----
+```
+
+### Shard 5 — Colin's H100 (overflow for numbers 18-35)
+
+**SSH:** `ssh -i ~/.ssh/ic-shard-5.pem ubuntu@89.169.120.70`
+**Output dir:** `runs/attendee-N/`
+
+Save this private key as `~/.ssh/ic-shard-5.pem`, then `chmod 600 ~/.ssh/ic-shard-5.pem`:
+
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACC2i/j4J2XobOiPzneTUTjy1osU2LbIy34l5EYRT+QFxQAAAKBc2Z5xXNme
+cQAAAAtzc2gtZWQyNTUxOQAAACC2i/j4J2XobOiPzneTUTjy1osU2LbIy34l5EYRT+QFxQ
+AAAEAfcTAKa6ptopu83CZnz396ZZrIgikWB53fI9B0YbcRW7aL+PgnZehs6I/Od5NROPLW
+ixTYtsjLfiXkRhFP5AXFAAAAFndzLWNvbGluLTVAaWMtd29ya3Nob3ABAgMEBQYH
 -----END OPENSSH PRIVATE KEY-----
 ```
 
