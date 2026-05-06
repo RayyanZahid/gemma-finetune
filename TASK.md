@@ -26,9 +26,13 @@ warm box. While you wait, read `SKILL.md` § 3 to understand what's happening.
 - **LoRA rank**: 4 (default — fast train, smaller adapter). Bump to 8 or 16
   if your task is harder (`--rank 16`).
 - **Training framework**: Unsloth (4-bit QLoRA). Already installed in `~/venv`.
-- **Dataset**: `data/dolly_1k.jsonl` — first 1k rows of Databricks Dolly 15k.
-  Already on the VM. If you want to specialize, subsample by category — the
-  dataset has 8 (creative_writing, summarization, classification, ...).
+- **Dataset**: pick one of the pre-staged datasets in `data/`:
+  - `data/dolly_1k.jsonl` — default; first 1k rows of Databricks Dolly 15k (8 task categories)
+  - `data/shakespeare_15k.jsonl` — 15k Shakespearean continuation + style-transfer rows
+  - `data/obama_15k.jsonl`, `data/trump_15k.jsonl`, `data/marktwain_15k.jsonl` — coming online as the build script lands them
+  Default uses Dolly. Override with `--dataset data/<name>.jsonl` on `finetune.py`.
+  If you want to specialize Dolly further, subsample by category — Dolly has
+  8 categories (creative_writing, summarization, classification, ...).
 - **Output adapter path**: `runs/<your-name>/<your-name>-r1.adapter`
 - **Output compare**: `runs/<your-name>/<your-name>-r1.compare.md`
 
@@ -96,9 +100,14 @@ keep a copy after the meter stops at 9:30pm.
   each as `<name>-r2.adapter`. Diff the compares.
 - **Specialize by category**: filter Dolly to one of its 8 categories before
   training. See if you get a "creative writer" or "classifier" Gemma.
+- **Try a voice/style dataset**: Shakespeare and others are pre-built in
+  `data/`. `python templates/finetune.py --user <name> --dataset data/shakespeare_15k.jsonl`
+  produces a Gemma that finishes lines in iambic pentameter — a much louder
+  shift than Dolly's general instruction tuning.
 - **Bring your own dataset**: any JSONL with `instruction` / `response`
   fields works. SCP it up to `data/<your-name>-mydata.jsonl` and point
-  `--dataset` at it.
+  `--dataset` at it. To build your own voice/style dataset from a public
+  corpus, see `data/build_voice_dataset.py`.
 
 ---
 
