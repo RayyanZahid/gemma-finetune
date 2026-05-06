@@ -41,6 +41,7 @@ export IMAGE_FAMILY=mk8s-worker-node-v-1-33-ubuntu24.04-cuda12.8
 # Optional overrides
 export DISK_GB=200
 export IMAGE_PARENT=project-e00public-images
-export FLEET_SIZE=9
+export FLEET_SIZE=10
 export INSTANCE_PREFIX=workshop
+export ATTENDEE_COUNT=80
 EOF
