@@ -5,6 +5,7 @@ workshop/.env.workshop
 workshop/attendees.csv
 workshop/shard-assignments.csv
 workshop/_*.sh
+workshop/_*/
 
 # Claude Code session artifacts
 .claude/
