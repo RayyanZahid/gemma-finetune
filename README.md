@@ -28,8 +28,21 @@ git clone https://github.com/RayyanZahid/gemma-finetune
 cd gemma-finetune
 # you have a CUDA GPU already, locally or remote
 pip install unsloth trl peft datasets bitsandbytes accelerate
+
+# default: Dolly-1k (general instruction tuning)
 python templates/finetune.py --user me --dataset data/dolly_1k.jsonl --out-dir runs
+
+# voice/style alternatives — build first, then point --dataset at the result
+python data/build_voice_dataset.py --source shakespeare
+python templates/finetune.py --user me --dataset data/shakespeare_15k.jsonl --out-dir runs
 ```
+
+`data/build_voice_dataset.py` produces 15k-row dolly-shaped JSONL from public corpora.
+Sources online: `shakespeare`, `obama`, `trump`, `marktwain`. Run `--all` to build every source.
+
+Pre-built copies are on HF Hub at [`xinbenlv/gemma-finetune-webgpu`](https://huggingface.co/datasets/xinbenlv/gemma-finetune-webgpu)
+for fast download — `workshop/bootstrap.sh` curls them onto each VM automatically
+(falls back to running the local build if HF is unreachable).
 
 Output: a LoRA adapter at `runs/me-r1.adapter` plus a `runs/me-r1.compare.md` showing baseline vs tuned on five held-out prompts.
 

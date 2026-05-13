@@ -62,18 +62,28 @@ source ~/venv/bin/activate
 pip install --upgrade pip wheel -q
 pip install -q unsloth trl peft datasets bitsandbytes accelerate
 
-# Default dataset: Dolly-1k from HF (skip if already there)
-if [ ! -f ~/work/data/dolly_1k.jsonl ]; then
+# Pick a dataset. Default: Dolly-1k. Override with DATASET=data/<source>_15k.jsonl
+# Built sources live under data/ in the cloned repo (see workshop/bootstrap.sh).
+DATASET_PATH="${DATASET:-data/dolly_1k.jsonl}"
+
+# Auto-fetch dolly_1k if it's the dataset and not present (back-compat).
+if [ "\$DATASET_PATH" = "data/dolly_1k.jsonl" ] && [ ! -f ~/work/\$DATASET_PATH ]; then
   echo "[remote] fetching Dolly-1k..."
   curl -sL "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/main/databricks-dolly-15k.jsonl" \
     | head -n 1000 > ~/work/data/dolly_1k.jsonl
   wc -l ~/work/data/dolly_1k.jsonl
 fi
 
+if [ ! -f ~/work/\$DATASET_PATH ]; then
+  echo "[remote] FATAL: dataset \$DATASET_PATH not found on VM." >&2
+  echo "[remote] Run 'bash ~/gemma-finetune/workshop/bootstrap.sh' to pre-stage all 5 datasets, or scp manually." >&2
+  exit 2
+fi
+
 cd ~/work
-echo "[remote] launching finetune.py --user $USER_NAME $EXTRA_ARGS..."
+echo "[remote] launching finetune.py --user $USER_NAME --dataset \$DATASET_PATH $EXTRA_ARGS..."
 python finetune.py --user "$USER_NAME" \
-  --dataset data/dolly_1k.jsonl \
+  --dataset "\$DATASET_PATH" \
   --eval-prompts prompts/eval_prompts.json \
   --out-dir runs \
   $EXTRA_ARGS 2>&1 | tail -300

@@ -11,7 +11,7 @@ Use this in tandem with [`SKILL.md`](SKILL.md) (the why) and [`PITFALLS.md`](PIT
 - [ ] **GPU available.** `nvidia-smi` returns a card. ≥10 GB VRAM for E4B at QLoRA r=8. ≥6 GB for E2B. ≥24 GB for 12B.
 - [ ] **Python 3.10+** on the GPU host. Ubuntu 22.04 / 24.04 stock works.
 - [ ] **CUDA driver** ≥12.4 visible (`nvidia-smi` top-right). Newer is fine.
-- [ ] **Dataset in JSONL.** One row per example, fields `instruction`, `response`, optional `context`. Validate with `head -n 1 data/your_dataset.jsonl | python -m json.tool`.
+- [ ] **Dataset selected.** Pick one of the pre-staged datasets in `data/`: workshop default `dolly_1k.jsonl`, or voice/style alternatives `shakespeare_15k.jsonl`, `obama_15k.jsonl`, `trump_15k.jsonl`, `marktwain_15k.jsonl` — or bring your own JSONL. One row per example, fields `instruction`, `response`, optional `context`. Validate with `head -n 1 data/your_dataset.jsonl | python -m json.tool`. To build a voice/style dataset from a public corpus, see `data/build_voice_dataset.py`.
 - [ ] **Eval prompts in JSON.** N held-out prompts, each `{id, category, prompt}`. Default at `templates/eval_prompts.json`.
 - [ ] **Model name resolved.** Confirm the chosen `unsloth/gemma-4-*-it` repo on Hugging Face exists (`curl -sI -o /dev/null -w "%{http_code}\n" https://huggingface.co/unsloth/gemma-4-E4B-it/resolve/main/config.json` returns `200`).
 

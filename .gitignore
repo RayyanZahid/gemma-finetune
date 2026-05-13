@@ -21,6 +21,8 @@ __pycache__/
 runs/
 models/
 data/dolly_*.jsonl
+data/*_15k.jsonl
+data/_inspect/
 
 # OS
 .DS_Store

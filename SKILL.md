@@ -78,6 +78,20 @@ curl -L https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/
 head -n 1000 data/dolly_15k.jsonl > data/dolly_1k.jsonl
 ```
 
+#### Voice/style datasets (built locally, dolly-shaped)
+
+For a louder, more visible behavior shift than Dolly's general instruction tuning, build one of the voice/style datasets from a public corpus. Run any of these from the repo root:
+
+```bash
+python data/build_voice_dataset.py --source shakespeare   # Shakespeare lines + passages
+python data/build_voice_dataset.py --source obama         # Obama tweets (6 templates)
+python data/build_voice_dataset.py --source trump         # Trump tweets (profanity-filtered)
+python data/build_voice_dataset.py --source marktwain     # Mark Twain prose (10 books, Project Gutenberg)
+python data/build_voice_dataset.py --all                  # all four, sequential
+```
+
+Each call writes `data/<source>_15k.jsonl` (15,000 rows, dolly schema). The workshop bootstrap (`workshop/bootstrap.sh`) prefers a pre-built copy on HF — [`xinbenlv/gemma-finetune-webgpu`](https://huggingface.co/datasets/xinbenlv/gemma-finetune-webgpu) — and falls back to running the local build script if HF is unreachable. Attendees can pick `--dataset data/shakespeare_15k.jsonl` (etc.) without extra setup.
+
 For your own data: convert to JSONL with the same keys. If you only have `prompt` + `completion`, rename them to `instruction` + `response` — the chat-template wrapper in `finetune.py` keys off those.
 
 ### Eval prompts

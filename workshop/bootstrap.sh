@@ -63,7 +63,11 @@ else
   log "python deps already installed"
 fi
 
-# ---- 5. dolly-1k subset ------------------------------------------------------
+# ---- 5. datasets -------------------------------------------------------------
+# dolly_1k.jsonl is the workshop default; the other datasets are built via
+# data/build_voice_dataset.py (one source at a time, ~30-60s each on first run
+# because HF downloads cache locally).
+
 DOLLY_FULL="$REPO_DIR/data/databricks-dolly-15k.jsonl"
 DOLLY_1K="$REPO_DIR/data/dolly_1k.jsonl"
 if [ ! -f "$DOLLY_1K" ]; then
@@ -74,6 +78,32 @@ if [ ! -f "$DOLLY_1K" ]; then
 else
   log "dolly_1k.jsonl already in place ($(wc -l < "$DOLLY_1K") rows)"
 fi
+
+# Pre-built voice/style datasets live on HF for fast fetch (~4-5 MB each via
+# curl, vs ~30-60s to rebuild from upstream). Falls back to local build if HF
+# is unreachable. Sources tracked here must exist in build_voice_dataset.py
+# AND be uploaded to the HF repo below.
+HF_DATA_BASE="https://huggingface.co/datasets/xinbenlv/gemma-finetune-webgpu/resolve/main"
+for src in shakespeare obama trump marktwain; do
+  out="$REPO_DIR/data/${src}_15k.jsonl"
+  if [ -f "$out" ]; then
+    log "$src dataset already in place ($(wc -l < "$out") rows)"
+    continue
+  fi
+  log "fetching $src dataset from HF..."
+  if curl -sSL --fail "$HF_DATA_BASE/${src}_15k.jsonl" -o "$out.tmp"; then
+    mv "$out.tmp" "$out"
+    log "$src dataset ready ($(wc -l < "$out") rows, from HF)"
+    continue
+  fi
+  rm -f "$out.tmp"
+  log "HF fetch failed for $src; falling back to local build (~30-60s)..."
+  if python "$REPO_DIR/data/build_voice_dataset.py" --source "$src"; then
+    log "$src dataset ready ($(wc -l < "$out") rows, from build)"
+  else
+    log "WARNING: $src build failed — attendees can pick another dataset" >&2
+  fi
+done
 
 # ---- 6. verify --------------------------------------------------------------
 log "verifying GPU..."
@@ -90,18 +120,26 @@ python -c "import torch; assert torch.cuda.is_available(), 'CUDA not available';
 mkdir -p "$REPO_DIR/runs" "$REPO_DIR/models"
 
 # friendly login banner
+DATA_LIST=$(ls -1 "$REPO_DIR/data/"*.jsonl 2>/dev/null | xargs -I{} sh -c 'printf "    %-32s %s rows\n" "$(basename {})" "$(wc -l < {})"')
 cat > /tmp/ic-bootstrap-status <<EOF
 [ic-experiment-1] bootstrap complete.
   repo:    $REPO_DIR
   venv:    $VENV_DIR (already activated)
-  data:    $DOLLY_1K ($(wc -l < "$DOLLY_1K") rows)
   prompts: $REPO_DIR/prompts/eval_prompts.json
   GPU:     $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo unknown)
 
-To run:
+  datasets in $REPO_DIR/data/:
+$DATA_LIST
+
+To run (default = dolly_1k):
   source ~/venv/bin/activate
   cd ~/gemma-finetune
   python templates/finetune.py --user <your-name> --out-dir runs/<your-name>
+
+To pick a different voice (e.g. Shakespeare):
+  python templates/finetune.py --user <your-name> \\
+    --dataset data/shakespeare_15k.jsonl \\
+    --out-dir runs/<your-name>
 
 See ~/gemma-finetune/TASK.md for the full agent briefing.
 EOF
