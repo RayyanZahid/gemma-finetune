@@ -1,5 +1,10 @@
-# Shell and Python run on the Ubuntu GPU box. A CRLF checkout makes bash
-# fail with ": command not found", which reads like a missing binary.
-*.sh text eol=lf
-*.py text eol=lf
-*.yaml text eol=lf
+# This repo is cloned onto an Ubuntu GPU box. Everything checks out LF.
+#
+# core.autocrlf is true on the Windows machine that authors it, so without this
+# a checkout writes CRLF into the working copy, and the runbook scp's that copy
+# straight to Linux -- where bash answers a CRLF script with "\r: command not
+# found", which reads as a missing interpreter rather than a line-ending bug.
+# workshop/_strip-crlf.sh exists because this already happened once.
+#
+# text=auto still leaves detected binaries (png, pdf, woff2) untouched.
+* text=auto eol=lf
