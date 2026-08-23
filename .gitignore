@@ -25,3 +25,12 @@ data/dolly_*.jsonl
 # OS
 .DS_Store
 Thumbs.db
+
+# Private corpus — real correspondence from other people. This repo is PUBLIC.
+# The workshop scp's these onto the box, so they can appear in a clone.
+data/*.jsonl
+data/*.json
+prompts/ray-*
+*.reference.md
+ray-sweep.tgz
+!data/.gitkeep

@@ -46,13 +46,21 @@ def run_inference(model, tokenizer, prompts: list[dict], max_new_tokens: int) ->
     return out
 
 
-def write_compare(prompts, base_out, tuned_out, config, train_loss, timings, dest: Path) -> str:
+def write_compare(prompts, base_out, tuned_out, config, train_loss, timings, dest: Path,
+                  eval_loss: float | None = None) -> str:
     lines = [
         "# Compare\n",
         f"\n**Config:** {json.dumps(config)}\n",
         f"**Train loss (final):** {train_loss:.4f}\n",
-        f"**Timings (s):** {json.dumps(timings)}\n",
     ]
+    if eval_loss is not None:
+        gap = eval_loss - train_loss
+        verdict = "overfitting" if gap > 0.5 else "healthy"
+        lines.append(f"**Val loss (held-out):** {eval_loss:.4f}\n")
+        lines.append(f"**Gap (val - train):** {gap:+.4f} -> {verdict}\n")
+    else:
+        lines.append("**Val loss:** not measured (no --eval-dataset)\n")
+    lines.append(f"**Timings (s):** {json.dumps(timings)}\n")
     for p in prompts:
         lines.append(f"\n## {p['id']} ({p.get('category', 'eval')})\n")
         lines.append(f"\n**Prompt:** {p['prompt']}\n")
@@ -76,6 +84,11 @@ def main() -> int:
                          "E4B (~10GB) for solo runs.")
     ap.add_argument("--dataset", default="data/dolly_1k.jsonl",
                     help="Path to JSONL with instruction/response/(context) fields.")
+    ap.add_argument("--eval-dataset", default="",
+                    help="Held-out JSONL, same shape as --dataset. Enables "
+                         "validation loss. Without it the run reports train loss "
+                         "only, which on a small corpus rewards memorisation and "
+                         "cannot rank two runs against each other.")
     ap.add_argument("--eval-prompts", default="prompts/eval_prompts.json",
                     help="Path to JSON with held-out eval prompts.")
     ap.add_argument("--rank", type=int, default=4,
@@ -156,9 +169,17 @@ def main() -> int:
     ds = ds.map(fmt)
     print(f"[train] dataset rows after format: {len(ds)}")
 
+    eval_ds = None
+    if args.eval_dataset:
+        eval_ds = load_dataset("json", data_files=args.eval_dataset, split="train").map(fmt)
+        print(f"[train] held-out rows for validation loss: {len(eval_ds)}")
+    else:
+        print("[train] WARNING no --eval-dataset: train loss alone cannot rank two runs")
+
     t0 = time.time()
     trainer = SFTTrainer(
         model=model, tokenizer=tokenizer, train_dataset=ds,
+        eval_dataset=eval_ds,
         args=SFTConfig(
             output_dir=str(out_dir / f"{args.user}-trainer"),
             num_train_epochs=args.epochs,
@@ -168,6 +189,8 @@ def main() -> int:
             warmup_steps=5,
             logging_steps=10,
             save_strategy="no",
+            eval_strategy="epoch" if eval_ds is not None else "no",
+            per_device_eval_batch_size=args.batch_size,
             dataset_text_field="text",
             max_seq_length=args.max_seq_length,
             optim="adamw_8bit",
@@ -178,6 +201,15 @@ def main() -> int:
     timings["train_s"] = round(time.time() - t0, 2)
     train_loss = float(train_out.training_loss)
     print(f"[train] done in {timings['train_s']}s, final loss={train_loss:.4f}")
+
+    eval_loss = None
+    if eval_ds is not None:
+        t0 = time.time()
+        eval_loss = float(trainer.evaluate()["eval_loss"])
+        timings["val_s"] = round(time.time() - t0, 2)
+        gap = eval_loss - train_loss
+        state = "OVERFITTING" if gap > 0.5 else "healthy"
+        print(f"[val]   held-out loss={eval_loss:.4f}  gap={gap:+.4f}  ({state})")
 
     # 6. Save adapter
     adapter_path = out_dir / f"{args.user}-r1.adapter"
@@ -194,10 +226,13 @@ def main() -> int:
     config = {
         "model": args.model, "rank": args.rank, "alpha": args.alpha,
         "epochs": args.epochs, "samples": len(ds), "lr": args.lr,
+        "batch_size": args.batch_size, "grad_accum": args.grad_accum,
+        "max_seq_length": args.max_seq_length,
+        "eval_samples": len(eval_ds) if eval_ds is not None else 0,
     }
     compare_path = out_dir / f"{args.user}-r1.compare.md"
     text = write_compare(eval_prompts, base_out, tuned_out, config,
-                         train_loss, timings, compare_path)
+                         train_loss, timings, compare_path, eval_loss=eval_loss)
 
     # 9. Verdict
     n_shifted = sum(1 for p in eval_prompts if base_out[p["id"]] != tuned_out[p["id"]])
@@ -213,6 +248,8 @@ def main() -> int:
     # 10. Training log
     log = {
         "user": args.user, "config": config, "train_loss": train_loss,
+        "eval_loss": eval_loss,
+        "overfit_gap": (eval_loss - train_loss) if eval_loss is not None else None,
         "timings_s": timings, "verdict": f"{n_shifted}/{len(eval_prompts)}",
     }
     (out_dir / f"{args.user}-r1.json").write_text(json.dumps(log, indent=2))
