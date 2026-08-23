@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bootstrap.sh — pre-stage a Nebius H100 for the workshop.
+# bootstrap.sh — stage any CUDA box (yours or rented) for the gemma-finetune recipe.
 # Idempotent: safe to re-run. Skips work that's already done.
 #
 # What this does (on the VM, run as ubuntu):
@@ -10,7 +10,9 @@
 #   5. download data/dolly_1k.jsonl (8.6 MB)
 #   6. verify nvidia-smi sees the GPU + torch.cuda.is_available() returns True
 #
-# Usage on the VM:
+# Works on a Nebius H100, a laptop RTX, or any Ubuntu box with a CUDA driver.
+#
+# Usage on the box:
 #   curl -sSL https://raw.githubusercontent.com/RayyanZahid/gemma-finetune/master/workshop/bootstrap.sh | bash
 # OR after a clone:
 #   bash ~/gemma-finetune/workshop/bootstrap.sh
@@ -91,7 +93,7 @@ mkdir -p "$REPO_DIR/runs" "$REPO_DIR/models"
 
 # friendly login banner
 cat > /tmp/ic-bootstrap-status <<EOF
-[ic-experiment-1] bootstrap complete.
+[gemma-finetune] bootstrap complete.
   repo:    $REPO_DIR
   venv:    $VENV_DIR (already activated)
   data:    $DOLLY_1K ($(wc -l < "$DOLLY_1K") rows)

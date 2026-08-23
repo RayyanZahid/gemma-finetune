@@ -8,6 +8,7 @@ Use this in tandem with [`SKILL.md`](SKILL.md) (the why) and [`PITFALLS.md`](PIT
 
 ## Pre-flight (off-GPU, ~5 min)
 
+- [ ] **Whose GPU is this?** If you rented it, write the teardown command down NOW — see Phase 7. Billing runs from instance creation to instance deletion, not until you close the laptop.
 - [ ] **GPU available.** `nvidia-smi` returns a card. ≥10 GB VRAM for E4B at QLoRA r=8. ≥6 GB for E2B. ≥24 GB for 12B.
 - [ ] **Python 3.10+** on the GPU host. Ubuntu 22.04 / 24.04 stock works.
 - [ ] **CUDA driver** ≥12.4 visible (`nvidia-smi` top-right). Newer is fine.
@@ -86,7 +87,7 @@ The skill's `templates/finetune.py` does this automatically. Don't re-order — 
 ## Phase 5: Verdict
 
 - [ ] **N/M prompts shifted vs baseline.**
-- [ ] Workshop / validation success criterion: **≥3/5** (60%) shift on the default 5-prompt eval. Adjust threshold for your task.
+- [ ] Validation success criterion: **≥3/5** (60%) shift on the default 5-prompt eval. Adjust threshold for your task.
 
 If verdict fails:
 
@@ -116,6 +117,8 @@ Doubles disk footprint vs adapter-only. Only do this if you're shipping the mode
 
 ## Phase 7: Teardown (if on rented compute)
 
-If on Nebius / RunPod / Lambda: **always teardown after pulling the artifact.** See [`nebius-gpu/SKILL.md`](../nebius-gpu/SKILL.md) §4 for the Nebius teardown.
+If on Nebius / RunPod / Lambda: **always teardown after pulling the artifact.** See [`nebius-gpu/SKILL.md`](nebius-gpu/SKILL.md) §4 for the Nebius teardown, including the orphan-boot-disk case.
+
+Verify, don't assume — `nebius compute instance list --parent-id $PROJECT_ID` must come back empty. A forgotten H100 is ~$70/day.
 
 The adapter is small (~30 MB for E4B at r=8). Pull it back with `scp` before tearing down. Compare.md is a few KB; pull that too.

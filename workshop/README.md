@@ -1,22 +1,107 @@
-# Workshop Co-Host Runbook
+# Workshop Host Runbook
 
-**Event:** Immersive Commons · *Fine-Tune Gemma 4 on Your Data* · Tue May 5 2026 · 7-9pm PT · Frontier Tower 10F
-**Co-hosts:** Rayyan Zahid · Eric Mockler
+**Event:** Immersive Commons · *Fine-Tune Gemma 4 on Your Data* · Sat Aug 22 2026 · 7-9pm PT · Frontier Tower 10F
+**Hosts:** Rayyan Zahid · Eric Mockler
 
-Two patterns, depending on attendee count:
+Three patterns, depending on who owns the compute:
 
-| Pattern | Attendees | Cost (2hr) | Complexity | When to use |
+| Pattern | Attendees | Host cost (2hr) | Complexity | When to use |
 |---|---|---|---|---|
-| **A. Single H100, multi-key** | 4-6 | ~$6 | Low | Default for IC events |
-| **B. 9-node fleet** | 60-72 | ~$53 | Medium | Workshops at scale |
+| **A. Attendees self-provision (BYO)** | any | ~$3 (one demo box) | Low | **This workshop.** Room can run a terminal and make an account |
+| **B. Single H100, multi-key** | 4-6 | ~$6 | Low | Room that can't or shouldn't create cloud accounts |
+| **C. 9-node fleet** | 60-72 | ~$53 | Medium | Host-provisioned at scale |
 
-Pattern A is the actual May 5 setup. Pattern B is documented for re-use.
+Pattern A is the Aug 22 setup. B and C are the host-provisioned patterns from the May 5 run, kept because they still work and because A's fallback is B.
 
 ---
 
-## Pattern A — Single H100, 4-6 Attendees
+## Pattern A — Attendees self-provision (Aug 22 shape)
 
-The default ergonomics for an IC workshop: one H100, one shared `ubuntu` user, one SSH key per attendee appended to `~/.ssh/authorized_keys`, attendees scope work by directory (`runs/<their-name>/`). All 4-6 agents drive their own fine-tune in parallel; each Gemma 4 E4B QLoRA kernel is ~10 GB so 6 fit on the 80 GB H100 with headroom.
+**We are not provisioning GPUs for attendees.** Each person arrives with one of three compute lanes and drives their own box from [`../TASK.md`](../TASK.md):
+
+- **A.** Their own CUDA GPU (4090, 3090, laptop RTX)
+- **B.** Their own Nebius account, provisioned live via [`../nebius-gpu/SKILL.md`](../nebius-gpu/SKILL.md)
+- **C.** A free Colab / Kaggle T4
+
+That flips the host's job from sysadmin to coach. No keypairs to generate, no `nodes.csv`, no dispatch CSV, no 9:30pm teardown scramble across nine boxes — and no host liability if someone leaves a GPU running, which is exactly why § *The meter is yours* is load-bearing in TASK.md and worth saying out loud at the top of the session.
+
+### What gets shipped at the door
+
+One line, not a credential bundle:
+
+> `https://github.com/RayyanZahid/gemma-finetune` — point your coding agent at `TASK.md`, start at Step 0.
+
+### Host prep
+
+```
+  T-1d     post the repo link + "bring a laptop, we'll get you a GPU on the night"
+  T-1d     ask anyone taking the Nebius lane to CREATE THE ACCOUNT BEFORE they arrive
+  T-2h     provision ONE demo box for the live walkthrough      (~$3, this is the only host spend)
+  T-1.5h   bootstrap.sh on it + one smoke fine-tune             (proves the recipe on tonight's wheels)
+  T-30m    pull up TASK.md on the projector, Step 0 open
+  T+0      15-min live demo on the demo box, then the room forks by lane
+  T+0-2h   walk the room. Coach, don't SSH.
+  T+2h     round-table on compare.md files
+  T+2h     TEARDOWN CALL — everyone on Lane B runs teardown in the room, out loud
+  T+2h     tear down the demo box
+```
+
+The T-1d ask matters more than anything else on this list. Nebius signup plus a first-time GPU quota grant is the single thing most likely to eat somebody's whole workshop window, and it is entirely avoidable the day before.
+
+### Provision the one demo box
+
+Same recipe attendees use, so the demo is not a special case:
+
+```bash
+# in WSL, one time per session
+source workshop/.env.workshop                    # PROJECT_ID etc, from discover.sh
+INSTANCE_PREFIX=demo FLEET_SIZE=1 bash workshop/generate-keys.sh
+# provision one node — see _provision-experiment.sh for the inline single-node pattern
+
+ssh -i keys/demo-1.pem ubuntu@<IP> \
+  "curl -sSL https://raw.githubusercontent.com/RayyanZahid/gemma-finetune/master/workshop/bootstrap.sh | bash"
+```
+
+Then smoke it end-to-end before doors (`--max-samples 50 --epochs 1` is enough to prove wiring; see Pattern C Phase 6 for the full smoke block).
+
+### Coaching table
+
+Same failures as always, minus the shared-shard ones, plus the account ones:
+
+| Failure | Symptom | Coach with |
+|---|---|---|
+| Nebius quota denied | Console refuses the GPU preset | "Don't fight it. Colab T4, E2B, rank 4. Sort the account out after." |
+| `nebius` CLI not found on Windows | Install script did nothing useful | "It's Linux/Mac only. `wsl --install`, then run it inside WSL." |
+| Key perms | `Permissions 0777 ... too open` | "Move the .pem out of /mnt/c into your Linux home, chmod 600." |
+| OOM on a laptop card | `CUDA out of memory` | "E2B, rank 4, and close whatever else is on the GPU — `nvidia-smi` names it." |
+| Colab disconnect | Run vanishes mid-train | "`--max-samples 300 --epochs 2`, and download compare.md the second VERDICT prints." |
+| Skipped baseline | compare.md has tuned only | "Baseline first, otherwise the tune is unfalsifiable." |
+| Tokenization garbage | Loss never drops | "Apply Gemma's chat template — SKILL.md § 3." |
+| Adapter saved, outputs identical | 0/5 shift | "Inference must load base + adapter, not base." |
+
+**Golden rule, unchanged**: at any failure, walk over physically. Faster than DMs.
+
+### The teardown call
+
+Do this out loud at T+2h, before the round-table breaks up. Everyone on Lane B, in the room, together:
+
+```bash
+nebius compute instance delete --id <instance-id>
+nebius compute instance list --parent-id $PROJECT_ID    # must come back empty
+nebius compute disk list --parent-id $PROJECT_ID        # kill any orphan boot disk
+```
+
+A forgotten H100 is ~$70/day on somebody's personal card. Thirty seconds of everyone doing this together is the cheapest insurance in the runbook.
+
+### If the room can't self-provision
+
+Fall back to Pattern B below. Keep the demo box you already provisioned, append attendee pubkeys to its `authorized_keys` (no reprovision needed), and scope everyone by `runs/<their-name>/`.
+
+---
+
+## Pattern B — Single H100, 4-6 Attendees (host-provisioned)
+
+The May 5 2026 setup, and the fallback when a room cannot create its own cloud accounts: one H100, one shared `ubuntu` user, one SSH key per attendee appended to `~/.ssh/authorized_keys`, attendees scope work by directory (`runs/<their-name>/`). All 4-6 agents drive their own fine-tune in parallel; each Gemma 4 E4B QLoRA kernel is ~10 GB so 6 fit on the 80 GB H100 with headroom.
 
 ### What gets shipped at the door
 
@@ -100,7 +185,7 @@ No reboot or reprovision needed — SSH just starts accepting the new keys.
 
 ---
 
-## Pattern B — 9-Node Fleet for ~72 Attendees
+## Pattern C — 9-Node Fleet for ~72 Attendees (host-provisioned)
 
 This runbook is the operator's view: how the 9-node H100 fleet gets provisioned, how 72 attendees get dispatched onto it, and how it gets torn down at 9:30pm sharp so the meter stops.
 
@@ -321,7 +406,7 @@ Eric drives the live demo on shard 1. Ray walks the room. Attendees' coding agen
 | Skipped baseline | compare.md only has tuned outputs | "Re-brief: baseline first, otherwise the tune is unfalsifiable." |
 | No adapter saved | `models/` empty after train | "Check `model.save_pretrained(path)` is called after training." |
 | Adapter saved but inference identical | Outputs look the same | "Make sure inference loads `base + adapter`, not just base." |
-| Path drift | Files in `/tmp` or `~` | "Anchor your agent to `~/ic-fine-tune-gemma4/runs/<name>/`." |
+| Path drift | Files in `/tmp` or `~` | "Anchor your agent to `~/gemma-finetune/runs/<name>/`." |
 | Tokenization garbage | Loss never drops | "Apply Gemma's chat template — see SKILL.md § 3." |
 | Shared-VM cleanup churn | Agent tries to rm to recover | "Tell it never to delete. Snapshot/checkpoint instead." |
 
@@ -369,7 +454,7 @@ Add ~$0.20-0.50 if any boot disks survive past teardown — the script catches t
 
 **Wifi gets congested**: the FT10 wifi has been the bottleneck twice this year. Backup hotspot lives in Ray's bag. Eric's instructor laptop should be on the hotspot, not the FT wifi.
 
-**Doors-open and shards aren't ready**: spin attendees up on the BYO Nebius pattern (skill's [§ Pattern C](../SKILL.md#pattern-c-multi-attendee-workshop)). They each create their own free-tier H100 from scratch in ~5 min. Ugly but recoverable.
+**Doors-open and shards aren't ready**: fall through to [Pattern A](#pattern-a--attendees-self-provision-aug-22-shape) — attendees provision on their own Nebius accounts from [`../TASK.md`](../TASK.md) § Step 0, or take the free Colab T4 lane. Roughly 15 min for a first-time account, 2 min for Colab. Ugly but recoverable.
 
 ---
 
@@ -385,4 +470,4 @@ Add ~$0.20-0.50 if any boot disks survive past teardown — the script catches t
 
 ---
 
-*Authored T-3h (2026-05-05). Lock and execute by T-2h.*
+*Patterns B and C authored T-3h 2026-05-05. Pattern A added 2026-08-22, when we stopped provisioning attendee GPUs.*

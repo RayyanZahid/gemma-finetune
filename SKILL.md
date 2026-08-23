@@ -90,8 +90,8 @@ The Unsloth-mirrored 4-bit-ready Gemma 4 family on Hugging Face:
 
 | Model | Repo | VRAM (4-bit) | Notes |
 |---|---|---|---|
-| Gemma 4 E2B-it | `unsloth/gemma-4-E2B-it` | ~5 GB | Shared-VM workshop default (8+ concurrent). Laptop-class. |
-| Gemma 4 E4B-it | `unsloth/gemma-4-E4B-it` | ~10 GB | Solo/2-attendee default. Best quality/cost. |
+| Gemma 4 E2B-it | `unsloth/gemma-4-E2B-it` | ~5 GB | Script default. Laptop-class, Colab T4, anything tight. |
+| Gemma 4 E4B-it | `unsloth/gemma-4-E4B-it` | ~10 GB | Best quality/cost. Use this whenever the card is yours alone. |
 | Gemma 4 1B-it | `unsloth/gemma-4-1b-it` | ~3 GB | Tiny baseline |
 | Gemma 4 4B-it | `unsloth/gemma-4-4b-it` | ~12 GB | |
 | Gemma 4 12B-it | `unsloth/gemma-4-12b-it` | ~24 GB | Needs L40S+ |
@@ -203,7 +203,7 @@ _(shifted | IDENTICAL)_
 
 ```
 N/M prompts shifted vs baseline
-Workshop success criterion: ≥3/5
+Success criterion: ≥3/5
 ```
 
 If <3/5 shift, something is wrong:
@@ -235,7 +235,7 @@ What a typical session burns on H100 SXM (~$2.95/hr ≈ $0.049/min on Nebius on-
 
 For larger datasets: Dolly-15k full × 3 epochs ≈ 15× the training time → ~$11. For larger models: Gemma 4 12B ≈ 3× the training time at same rank → ~$2.10/run. E2B/E4B at LoRA rank 8 fit on a 4090; 12B+ needs L40S or H100.
 
-**For a 20-attendee workshop on a shared H100**: each attendee runs 1-2 fine-tunes during a 2-hour window. Single-VM cost ≈ 2 hr × $2.95 = ~$5.90. Multi-VM (one per attendee, parallel) ≈ 20 × $1.25 = ~$25. Shared-VM is the right call if you can isolate users with namespaces or separate `/runs/<name>/` dirs.
+**For a workshop**: the cheapest structure is not a shared box — it is no host box at all. If each attendee provisions on their own account, the host spends ~$1.25 on one demo instance and every attendee's meter is their own (~$1.25 each, or $0 on a laptop GPU or a Colab T4). Host-provisioned alternatives, when the room can't make cloud accounts: one shared VM ≈ 2 hr × $2.95 = ~$5.90 total, or one VM per attendee ≈ N × $1.25. Shared-VM only works if you isolate users by `runs/<name>/` dirs and cap the per-kernel VRAM.
 
 ---
 
@@ -261,7 +261,9 @@ For: finding the rank/alpha sweet spot. Reuse baseline outputs across runs (dete
 
 ### Pattern C: Multi-attendee workshop
 
-Each attendee runs `templates/finetune.py --user <name>` against the same shared VM. Adapters land in `models/<name>-r1.adapter`, compares in `runs/<name>-r1.compare.md`. For a fleet pattern with 9 H100 nodes serving ~72 attendees in parallel, see [`workshop/README.md`](workshop/README.md) — co-host runbook from the May 5 2026 Immersive Commons workshop.
+Default shape is **attendees on their own compute** — each brings a CUDA GPU, a Nebius account, or a Colab T4, and runs `templates/finetune.py --user <name>` on it. The host provisions one demo box and coaches; nobody hands out SSH keys. Attendee brief: [`TASK.md`](TASK.md).
+
+When the room can't self-provision, the host-provisioned fallbacks are a single shared VM (attendees scoped by `runs/<name>/`) or a 9-node H100 fleet for ~72 people. All three patterns, with cost ladders and teardown drills, are in [`workshop/README.md`](workshop/README.md).
 
 ---
 
@@ -275,7 +277,7 @@ The five things that bit Ray during the 2026-05-01 validation:
 
 3. **SSH key from `/mnt/c/...` has bad WSL permissions.** WSL2 mounts Windows files as 0777. SSH refuses with `Permissions 0777 for ...id_ed25519 are too open. This private key will be ignored.` Copy to WSL-native `~/.ssh/id_ed25519` with `chmod 600` before SSHing to the VM. The skill's `templates/run.sh` already prefers `~/.ssh/id_ed25519`; populate it first.
 
-4. **Flash Attention 2 is broken on the stock Nebius image.** Falls back to Xformers, which costs ~10-20% throughput. For workshops, accept the loss; FA2 install requires a 5-10 min compile that's not worth the wait. For repeated runs, install once: `pip install -q "flash-attn>=2.6" --no-build-isolation`.
+4. **Flash Attention 2 is broken on the stock Nebius image.** Falls back to Xformers, which costs ~10-20% throughput. Inside a workshop window, accept the loss; FA2 install requires a 5-10 min compile that's not worth the wait. For repeated runs, install once: `pip install -q "flash-attn>=2.6" --no-build-isolation`.
 
 5. **Unsloth's audio-tower hook fails silently for Gemma 4.** You'll see `Unsloth: Failed to register input-embedding hook for ...audio_tower: get_input_embeddings not auto-handled for Gemma4AudioModel`. Falls back to a pre-forward hook that works. Cosmetic warning — don't chase it.
 

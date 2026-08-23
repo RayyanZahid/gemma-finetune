@@ -7,8 +7,9 @@ saves the adapter, runs tuned inference, and writes a side-by-side compare.md.
 Usage:
     python finetune.py --user <name> [options]
 
-Defaults match the ic-fine-tune-gemma4 workshop recipe:
-    model=unsloth/gemma-4-E4B-it, rank=8, alpha=16, epochs=3, dataset=Dolly-1k
+Defaults are sized for the smallest plausible box (laptop GPU / Colab T4):
+    model=unsloth/gemma-4-E2B-it, rank=4, alpha=8, epochs=3, dataset=Dolly-1k
+On a card you have to yourself, prefer --model unsloth/gemma-4-E4B-it --rank 8.
 
 Run on a CUDA-enabled VM (any provider). Pair with nebius-gpu skill for infra.
 """
@@ -80,8 +81,8 @@ def main() -> int:
     ap.add_argument("--user", required=True, help="Used in output filenames.")
     ap.add_argument("--model", default="unsloth/gemma-4-E2B-it",
                     help="HF repo id. unsloth/gemma-4-{E2B,E4B,1b,4b,12b,26b}-it. "
-                         "Default E2B (~5GB VRAM) for shared-VM workshops; bump to "
-                         "E4B (~10GB) for solo runs.")
+                         "Default E2B (~5GB VRAM) fits a laptop GPU or a Colab "
+                         "T4; bump to E4B (~10GB) whenever the card is yours alone.")
     ap.add_argument("--dataset", default="data/dolly_1k.jsonl",
                     help="Path to JSONL with instruction/response/(context) fields.")
     ap.add_argument("--eval-dataset", default="",
@@ -92,8 +93,8 @@ def main() -> int:
     ap.add_argument("--eval-prompts", default="prompts/eval_prompts.json",
                     help="Path to JSON with held-out eval prompts.")
     ap.add_argument("--rank", type=int, default=4,
-                    help="LoRA rank. Default 4 for shared-VM workshops; 8-16 for "
-                         "harder tasks or solo runs.")
+                    help="LoRA rank. Default 4 is the low-VRAM setting; 8-16 for "
+                         "harder tasks or a card you have to yourself.")
     ap.add_argument("--alpha", type=int, default=8,
                     help="LoRA alpha. Convention: 2x rank.")
     ap.add_argument("--epochs", type=int, default=3)
@@ -238,7 +239,7 @@ def main() -> int:
     n_shifted = sum(1 for p in eval_prompts if base_out[p["id"]] != tuned_out[p["id"]])
     print(f"\n{'=' * 60}")
     print(f"VERDICT: {n_shifted}/{len(eval_prompts)} prompts shifted vs baseline")
-    print(f"Workshop success criterion: ≥3/{len(eval_prompts)} shifted")
+    print(f"Success criterion: >=3/{len(eval_prompts)} shifted")
     print(f"Compare file: {compare_path}")
     print(f"Adapter: {adapter_path}")
     print(f"Total wall-clock: {sum(timings.values()):.1f}s")

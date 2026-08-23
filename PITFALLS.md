@@ -175,7 +175,60 @@ tuned = PeftModel.from_pretrained(base, "models/<name>-r1.adapter")
 
 ---
 
-## Workshop-specific (room of 20)
+## Workshop-specific — attendees on their own compute
+
+This is the default workshop shape (see `workshop/README.md` Pattern A). The
+failure modes move from "they stomped each other" to "they never got a GPU" and
+"they left one running."
+
+### Attendee never gets a box — signup or GPU quota rejected
+
+**Why:** A brand-new Nebius account does not always come with GPU quota granted,
+and the console gives you this news at provision time, not at signup time.
+**Fix:** Ask the room to create accounts the day BEFORE. On the night, don't
+debug a console — move them to the free Colab T4 lane (`TASK.md` Lane C) and
+finish the run. Sort billing/quota out afterwards.
+
+### Attendee leaves a rented GPU running after they go home
+
+**Why:** No host teardown script covers a box the host never provisioned. Closing
+a laptop stops nothing; Nebius bills to instance deletion. ~$70/day, on their card.
+**Fix:** Run the teardown call out loud at T+2h with the room, before the
+round-table breaks up. `nebius compute instance list --parent-id $PROJECT_ID`
+must come back empty, and the boot disk has to die too. This is a facilitation
+step, not a documentation step — the doc alone does not do it.
+
+### Attendee's key won't authenticate from Windows
+
+**Why:** `.pem` saved under `/mnt/c/...` in WSL. DrvFs mounts 0777 and SSH refuses
+the key: `Permissions 0777 for ... are too open`.
+**Fix:** Copy it into the Linux home and `chmod 600`. On native PowerShell:
+`icacls .\key.pem /inheritance:r /grant:r "$env:USERNAME:R"`.
+
+### `nebius` CLI "installs" on Windows and then isn't there
+
+**Why:** The CLI is Linux/Mac only. The install line appears to work in PowerShell
+and leaves nothing on PATH.
+**Fix:** `wsl --install`, then run the installer inside WSL. Budget 10 min for a
+first-time WSL setup — this is a T-1d task, not a T+0 task.
+
+### Colab run vanishes mid-training
+
+**Why:** Idle-timeout or a tab disconnect. The VM is reclaimed with the adapter on it.
+**Fix:** Size the run to finish inside the window — `--max-samples 300 --epochs 2`
+on a T4 — and download `compare.md` the moment VERDICT prints.
+
+### Attendee OOMs on a laptop card that "has enough VRAM"
+
+**Why:** A browser, a game launcher, or a previous crashed run is still holding
+CUDA memory. `nvidia-smi` names the process.
+**Fix:** Kill the holder, or drop to E2B at `--rank 2`.
+
+---
+
+## Workshop-specific — host-provisioned shared box (Patterns B/C)
+
+Only applies when the host hands out SSH keys to one shared VM.
 
 ### Multiple attendees writing to the same model file
 
@@ -190,6 +243,4 @@ tuned = PeftModel.from_pretrained(base, "models/<name>-r1.adapter")
 ### One attendee `rm -rf`'d the shared dataset
 
 **Why:** Agent went to "clean up" and reached too far.
-**Fix:** Set `data/` and `prompts/` to read-only at attendee provisioning. `chmod 555 ~/ic-fine-tune-gemma4/data ~/ic-fine-tune-gemma4/prompts`.
-
-[TBD — fill from validated run]
+**Fix:** Set `data/` and `prompts/` to read-only at attendee provisioning. `chmod 555 ~/gemma-finetune/data ~/gemma-finetune/prompts`.

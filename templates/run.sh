@@ -6,7 +6,7 @@
 #
 # Assumes:
 #   - SSH key at $SSH_KEY (override via env, default: ~/.ssh/id_ed25519)
-#     Workshop attendees: `SSH_KEY=./workshop-N.pem bash run.sh <ip> <user>`
+#     Rented box: `SSH_KEY=./your-key.pem bash run.sh <ip> <user>`
 #   - On WSL, keep the key inside the Linux home — /mnt/c keys have bad perms
 #   - VM has python3, pip, CUDA driver
 #   - VM is Ubuntu 22.04 or 24.04 (PEP 668 handled either way)

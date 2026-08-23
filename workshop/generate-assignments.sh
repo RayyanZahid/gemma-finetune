@@ -18,7 +18,7 @@ ATTENDEE_COUNT="${ATTENDEE_COUNT:-80}"
 PER_SHARD="${PER_SHARD:-8}"
 VENUE="${VENUE:-Frontier Tower, Floor 16}"
 EVENT_NAME="${EVENT_NAME:-Fine-Tune Gemma 4 on Your Data}"
-EVENT_TIME="${EVENT_TIME:-Tue May 5 2026, 7:30pm PT}"
+EVENT_TIME="${EVENT_TIME:-Sat Aug 22 2026, 7:30pm PT}"
 
 if [ ! -f "$NODES" ]; then
   echo "FATAL: nodes.csv not found. Run provision-fleet.sh --submit first." >&2; exit 1
