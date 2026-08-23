@@ -4,8 +4,9 @@ workshop/nodes.csv
 workshop/.env.workshop
 workshop/attendees.csv
 workshop/shard-assignments.csv
-workshop/_*.sh
-workshop/_*/
+workshop/_*
+# ^ was workshop/_*.sh, which missed the .log/.py/.awk scratch left by the
+# May run. _finalize.log carries a provisioned instance's public IP.
 
 # Claude Code session artifacts
 .claude/
@@ -34,3 +35,9 @@ prompts/ray-*
 *.reference.md
 ray-sweep.tgz
 !data/.gitkeep
+
+# Unreferenced 2.9 MB binary, untracked since 6 May. Nothing in the repo links
+# to it. Ignored rather than committed because publishing it to a public repo is
+# a call for its author, not a side effect of a tree-clean check. Delete this
+# line to ship it.
+COMIC.pdf
